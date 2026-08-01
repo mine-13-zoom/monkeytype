@@ -1,0 +1,18 @@
+{
+  "name": "monkeytypecli",
+  "version": "0.1.0",
+  "description": "A monkeytype clone for the terminal",
+  "type": "module",
+  "bin": {
+    "monkeytypecli": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch run src/index.ts"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "typescript": "^7.0.2"
+  }
+}
