@@ -22,10 +22,12 @@ export interface TestResult {
   wpmHistory: number[];
   rawHistory: number[];
   errHistory: number[];
+  wpmConsistency: number;
   language: string;
   punctuation: boolean;
   numbers: boolean;
   quoteSource?: string;
+  quoteId?: number;
 }
 
 function roundTo2(n: number): number {
@@ -60,7 +62,12 @@ export class Engine {
   currentWord = 0;
   startedAt: number | null = null;
   endedAt: number | null = null;
+  createdAt = 0;
+  firstKeyAt: number | null = null;
+  lastKeyAt: number | null = null;
   quoteSource: string | undefined;
+  quoteId: number | undefined;
+  quoteGroup: number | undefined;
 
   // keystroke log: [timestampMs, correct]
   keyLog: Array<[number, boolean]> = [];
@@ -80,7 +87,29 @@ export class Engine {
     e.words = built.words;
     e.typed = e.words.map(() => "");
     e.quoteSource = built.quoteSource;
+    e.quoteId = built.quoteId;
+    e.quoteGroup = built.quoteGroup;
+    e.createdAt = Date.now();
     return e;
+  }
+
+  /** Inter-keypress intervals in ms (monkeytype keySpacing). */
+  keySpacing(): number[] {
+    const out: number[] = [];
+    for (let i = 1; i < this.keyLog.length; i++) {
+      out.push(this.keyLog[i]![0] - this.keyLog[i - 1]![0]);
+    }
+    return out;
+  }
+
+  lastKeyToEnd(): number {
+    if (this.endedAt === null || this.keyLog.length === 0) return 0;
+    return Math.max(0, this.endedAt - this.keyLog[this.keyLog.length - 1]![0]);
+  }
+
+  startToFirstKey(): number {
+    if (this.keyLog.length === 0 || this.createdAt === 0) return 0;
+    return Math.max(0, this.keyLog[0]![0] - this.createdAt);
   }
 
   get isStarted(): boolean {
@@ -111,7 +140,10 @@ export class Engine {
   }
 
   private ensureStarted(): void {
-    if (this.startedAt === null) this.startedAt = Date.now();
+    if (this.startedAt === null) {
+      this.startedAt = Date.now();
+      this.firstKeyAt = this.startedAt;
+    }
   }
 
   private bucket(t: number): number {
@@ -121,6 +153,7 @@ export class Engine {
 
   private logKeypress(correct: boolean): void {
     const t = Date.now();
+    this.lastKeyAt = t;
     this.keyLog.push([t, correct]);
     const b = this.bucket(t);
     while (this.rawPerSecond.length <= b) this.rawPerSecond.push(0);
@@ -318,11 +351,23 @@ export class Engine {
     const rawWpm = roundTo2(calculateWpm(totalTyped, dur));
     const acc = totalTyped === 0 ? 100 : roundTo2((correctKp / totalTyped) * 100);
 
-    const rawHist = this.rawPerSecond.map((c) => roundTo2(calculateWpm(c, 1)));
+    const rawHist = this.rawPerSecond.map((c, i) => {
+      const isLast = i === this.rawPerSecond.length - 1;
+      const interval = isLast ? Math.max(0.001, dur - i) : 1;
+      return Math.round(calculateWpm(c, interval));
+    });
     const sd = stdDev(rawHist);
     const avg = mean(rawHist);
     let consistency = avg > 0 ? kogasa(sd / avg) : 0;
     if (isNaN(consistency)) consistency = 0;
+    consistency = Math.min(100, Math.max(0, consistency));
+
+    // fill wpm history for short tests (needed before wpmConsistency)
+    const wpmHistory = [...this.wpmHistory];
+    if (wpmHistory.length === 0) wpmHistory.push(wpm);
+    let wpmConsistency = kogasa(stdDev(wpmHistory) / Math.max(1e-9, mean(wpmHistory)));
+    if (isNaN(wpmConsistency)) wpmConsistency = 0;
+    wpmConsistency = Math.min(100, Math.max(0, wpmConsistency));
 
     const cfg = this.cfg;
     const mode2 =
@@ -331,14 +376,10 @@ export class Engine {
         : cfg.mode === "words"
           ? String(cfg.words)
           : cfg.mode === "quote"
-            ? cfg.quoteLength
+            ? String(this.quoteId ?? -1)
             : cfg.mode === "custom"
-              ? cfg.customLimit
-              : "";
-
-    // fill wpm history for short tests
-    const wpmHistory = [...this.wpmHistory];
-    if (wpmHistory.length === 0) wpmHistory.push(wpm);
+              ? "custom"
+              : "zen";
 
     return {
       mode: cfg.mode,
@@ -352,10 +393,12 @@ export class Engine {
       wpmHistory,
       rawHistory: rawHist,
       errHistory: this.errPerSecond,
+      wpmConsistency,
       language: cfg.language,
       punctuation: cfg.punctuation,
       numbers: cfg.numbers,
       quoteSource: this.quoteSource,
+      quoteId: this.quoteId,
     };
   }
 }

@@ -122,6 +122,8 @@ export function applyPunctuation(words: string[], language: string): string[] {
 export interface BuiltTest {
   words: string[];
   quoteSource?: string;
+  quoteId?: number;
+  quoteGroup?: number;
 }
 
 /** Build the full word list for a test. */
@@ -132,6 +134,8 @@ export async function buildTest(cfg: Config): Promise<BuiltTest> {
     return {
       words: text.split(/\s+/).filter((w) => w.length > 0),
       quoteSource: q?.source,
+      quoteId: q?.id,
+      quoteGroup: q?.group,
     };
   }
   if (cfg.mode === "custom") {
@@ -160,8 +164,10 @@ function buildCustomWords(cfg: Config): string[] {
   return out;
 }
 
+type QuoteWithGroup = Quote & { group: number };
+
 /** Pick a quote respecting the quoteLength setting. */
-export async function pickQuote(cfg: Config): Promise<Quote | null> {
+export async function pickQuote(cfg: Config): Promise<QuoteWithGroup | null> {
   const file = await loadQuotes(cfg.language);
   if (!file || file.quotes.length === 0) return null;
 
@@ -169,6 +175,11 @@ export async function pickQuote(cfg: Config): Promise<Quote | null> {
     cfg.quoteLength === "all"
       ? -1
       : { short: 0, medium: 1, long: 2, thicc: 3 }[cfg.quoteLength];
+
+  const groupOf = (q: Quote): number => {
+    const idx = file.groups.findIndex(([min, max]) => q.length >= min! && q.length <= max!);
+    return idx === -1 ? file.groups.length - 1 : idx;
+  };
 
   let pool = file.quotes;
   if (groupIndex >= 0) {
@@ -179,7 +190,8 @@ export async function pickQuote(cfg: Config): Promise<Quote | null> {
       if (filtered.length > 0) pool = filtered;
     }
   }
-  return pool[Math.floor(random() * pool.length)]!;
+  const q = pool[Math.floor(random() * pool.length)]!;
+  return { ...q, group: groupOf(q) };
 }
 
 /** Get a fresh batch of words to append during time/zen/custom-time tests. */

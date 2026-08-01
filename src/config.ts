@@ -17,6 +17,8 @@ export interface Config {
   customLimit: CustomLimit;
   customLimitValue: number;
   liveWpm: boolean;
+  authEmail: string;
+  authRefreshToken: string;
 }
 
 export const defaultConfig: Config = {
@@ -32,6 +34,8 @@ export const defaultConfig: Config = {
   customLimit: "none",
   customLimitValue: 50,
   liveWpm: true,
+  authEmail: "",
+  authRefreshToken: "",
 };
 
 function configPath(): string {
@@ -42,6 +46,9 @@ function configPath(): string {
 export async function loadConfig(): Promise<Config> {
   try {
     const raw = await Bun.file(configPath()).json();
+    // Drop the legacy Ape Key field. Ape Keys are accepted for result reads,
+    // but the official POST /results route requires Firebase Bearer auth.
+    delete raw.apeKey;
     return { ...defaultConfig, ...raw };
   } catch {
     return { ...defaultConfig };
@@ -53,6 +60,8 @@ export async function saveConfig(cfg: Config): Promise<void> {
     const path = configPath();
     await Bun.$`mkdir -p ${path.slice(0, path.lastIndexOf("/"))}`.quiet();
     await Bun.write(path, JSON.stringify(cfg, null, 2));
+    // Refresh tokens are credentials; never leave the config world-readable.
+    await Bun.$`chmod 600 ${path}`.quiet();
   } catch {
     // non-fatal
   }

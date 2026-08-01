@@ -15,7 +15,14 @@ export type Key =
   | { type: "right" }
   | { type: "home" }
   | { type: "end" }
-  | { type: "ctrl_c" };
+  | { type: "ctrl_c" }
+  | {
+      type: "mouse";
+      kind: "press" | "release" | "wheel_up" | "wheel_down" | "move";
+      button: number;
+      x: number; // 1-based column
+      y: number; // 1-based row
+    };
 
 type KeyHandler = (key: Key) => void;
 type ResizeHandler = (cols: number, rows: number) => void;
@@ -34,7 +41,28 @@ export function parseKeys(buf: Buffer): Key[] {
     const c = s[i]!;
     if (c === ESC) {
       const rest = s.slice(i);
-      if (rest === ESC) {
+      // SGR mouse: \x1b[<Cb;Cx;Cy(M press / m release)
+      const mouse = /^\x1b\[<(\d+);(\d+);(\d+)([Mm])/.exec(rest);
+      if (mouse) {
+        const cb = parseInt(mouse[1]!, 10);
+        const x = parseInt(mouse[2]!, 10);
+        const y = parseInt(mouse[3]!, 10);
+        const suffix = mouse[4]!;
+        let kind: "press" | "release" | "wheel_up" | "wheel_down" | "move";
+        if (cb & 64) {
+          kind = (cb & 1) === 0 ? "wheel_up" : "wheel_down";
+        } else if (suffix === "m") {
+          kind = "release";
+        } else if (cb & 32) {
+          kind = "move";
+        } else {
+          kind = "press";
+        }
+        keys.push({ type: "mouse", kind, button: cb & 3, x, y });
+        i += mouse[0].length;
+      } else if (rest === ESC || rest.startsWith(ESC + ESC)) {
+        // A fast Esc followed by another escape sequence may share one chunk.
+        // Consume only the first Esc so the next sequence is parsed normally.
         keys.push({ type: "escape" });
         i += 1;
       } else if (rest.startsWith(ESC + "[Z")) {
@@ -117,14 +145,14 @@ export function startTerminal(opts: {
     resizeHandler?.(process.stdout.columns, process.stdout.rows);
   });
 
-  // alternate screen, hide cursor, clear
-  write("\x1b[?1049h\x1b[?25l\x1b[2J\x1b[H");
+  // alternate screen, hide cursor, clear, enable SGR mouse (clicks + wheel)
+  write("\x1b[?1049h\x1b[?25l\x1b[2J\x1b[H\x1b[?1000h\x1b[?1002h\x1b[?1006h");
 }
 
 export function stopTerminal(): void {
   if (!started) return;
   started = false;
-  write("\x1b[?25h\x1b[?1049h\x1b[0m");
+  write("\x1b[?1006l\x1b[?1002l\x1b[?1000l\x1b[?25h\x1b[?1049h\x1b[0m");
   const stdin = process.stdin;
   if (stdin.isTTY) stdin.setRawMode(false);
   stdin.pause();
