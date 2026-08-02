@@ -1,19 +1,37 @@
 {
-  "name": "monkeytypecli",
+  "name": "monkeytype",
   "version": "0.1.0",
   "description": "A monkeytype clone for the terminal",
   "type": "module",
   "bin": {
-    "monkeytypecli": "./src/index.ts"
+    "monkeytype": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "data"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mine-13-zoom/monkeytype.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "scripts": {
-    "start": "bun run src/index.ts",
-    "dev": "bun --watch run src/index.ts"
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --banner:js='#!/usr/bin/env node' --packages=external",
+    "prepublishOnly": "npm run build",
+    "start": "node dist/index.js",
+    "dev": "node --watch dist/index.js",
+    "dev:src": "bun --watch run src/index.ts"
   },
   "license": "MIT",
   "devDependencies": {
-    "@types/bun": "^1.3.14",
+    "@types/node": "^22.15.0",
     "@types/object-hash": "^3.0.6",
+    "esbuild": "^0.25.5",
     "typescript": "^7.0.2"
   },
   "dependencies": {

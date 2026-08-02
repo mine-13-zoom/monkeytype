@@ -262,7 +262,7 @@ export async function submitResult(
       headers: {
         Authorization: `Bearer ${auth.idToken}`,
         "Content-Type": "application/json",
-        "User-Agent": "monkeytypecli/0.1.0",
+        "User-Agent": "monkeytype/0.1.0",
         "x-client-version": clientVersion,
       },
       body: JSON.stringify({ result }),

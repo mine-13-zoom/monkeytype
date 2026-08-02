@@ -1,5 +1,4 @@
-#!/usr/bin/env bun
-// monkeytypecli — a monkeytype clone for the terminal.
+// monkeytype — a monkeytype clone for the terminal.
 import { startTerminal, stopTerminal, type Key } from "./term";
 import { loadConfig, saveConfig, type Config, type Mode } from "./config";
 import { App, TestScreen } from "./ui";
@@ -7,9 +6,9 @@ import { themeNames } from "./theme";
 import { baseLanguageNames } from "./data";
 
 function printHelp(): void {
-  console.log(`monkeytypecli — a monkeytype clone for the terminal
+  console.log(`monkeytype — a monkeytype clone for the terminal
 
-usage: monkeytypecli [options]
+usage: monkeytype [options]
 
 options:
   -m, --mode <mode>        time | words | quote | zen | custom
@@ -70,7 +69,7 @@ async function main(): Promise<void> {
   if (args.includes("--numbers")) cfg.numbers = true;
 
   if (!process.stdin.isTTY) {
-    console.error("monkeytypecli needs an interactive terminal");
+    console.error("monkeytype needs an interactive terminal");
     process.exit(1);
   }
 

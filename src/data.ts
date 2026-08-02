@@ -1,5 +1,7 @@
 // Language word lists and quotes, ported from monkeytype's static data.
 
+import { listJsonBasenames, readJson } from "./fs";
+
 export interface LanguageData {
   name: string;
   noLazyMode?: boolean;
@@ -26,15 +28,8 @@ const quoteDir = new URL("../data/quotes/", import.meta.url);
 const langCache = new Map<string, LanguageData>();
 const quoteCache = new Map<string, QuoteFile>();
 
-async function listJsonFiles(dir: URL): Promise<string[]> {
-  const glob = new Bun.Glob("*.json");
-  const out: string[] = [];
-  for await (const f of glob.scan({ cwd: dir.pathname })) out.push(f.replace(/\.json$/, ""));
-  return out.sort();
-}
-
-export const languageNames: string[] = await listJsonFiles(langDir);
-export const quoteLanguages: string[] = await listJsonFiles(quoteDir);
+export const languageNames: string[] = await listJsonBasenames(langDir);
+export const quoteLanguages: string[] = await listJsonBasenames(quoteDir);
 
 /** Language names without size suffixes, e.g. english, english_1k, english_10k -> base entries. */
 export function baseLanguageNames(): string[] {
@@ -46,7 +41,7 @@ export function baseLanguageNames(): string[] {
 export async function loadLanguage(name: string): Promise<LanguageData> {
   const cached = langCache.get(name);
   if (cached) return cached;
-  const data: LanguageData = await Bun.file(new URL(name + ".json", langDir)).json();
+  const data = await readJson<LanguageData>(new URL(name + ".json", langDir));
   langCache.set(name, data);
   return data;
 }
@@ -66,7 +61,7 @@ export async function loadQuotes(language: string): Promise<QuoteFile | null> {
   const cached = quoteCache.get(name);
   if (cached) return cached;
   try {
-    const data: QuoteFile = await Bun.file(new URL(name + ".json", quoteDir)).json();
+    const data = await readJson<QuoteFile>(new URL(name + ".json", quoteDir));
     quoteCache.set(name, data);
     return data;
   } catch {

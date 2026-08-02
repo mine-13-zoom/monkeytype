@@ -1,4 +1,7 @@
-// Persistent user configuration, stored at $XDG_CONFIG_HOME/monkeytypecli/config.json
+// Persistent user configuration, stored at $XDG_CONFIG_HOME/monkeytype/config.json
+
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 
 export type Mode = "time" | "words" | "quote" | "zen" | "custom";
 export type QuoteLength = "short" | "medium" | "long" | "thicc" | "all";
@@ -40,12 +43,12 @@ export const defaultConfig: Config = {
 
 function configPath(): string {
   const xdg = process.env.XDG_CONFIG_HOME ?? process.env.HOME + "/.config";
-  return xdg + "/monkeytypecli/config.json";
+  return xdg + "/monkeytype/config.json";
 }
 
 export async function loadConfig(): Promise<Config> {
   try {
-    const raw = await Bun.file(configPath()).json();
+    const raw = JSON.parse(await readFile(configPath(), "utf8"));
     // Drop the legacy Ape Key field. Ape Keys are accepted for result reads,
     // but the official POST /results route requires Firebase Bearer auth.
     delete raw.apeKey;
@@ -58,10 +61,10 @@ export async function loadConfig(): Promise<Config> {
 export async function saveConfig(cfg: Config): Promise<void> {
   try {
     const path = configPath();
-    await Bun.$`mkdir -p ${path.slice(0, path.lastIndexOf("/"))}`.quiet();
-    await Bun.write(path, JSON.stringify(cfg, null, 2));
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, JSON.stringify(cfg, null, 2));
     // Refresh tokens are credentials; never leave the config world-readable.
-    await Bun.$`chmod 600 ${path}`.quiet();
+    await chmod(path, 0o600);
   } catch {
     // non-fatal
   }

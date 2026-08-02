@@ -1,3 +1,4 @@
+import { readJson } from "./fs";
 import { fg, bg, RESET } from "./term";
 
 export interface Theme {
@@ -14,7 +15,7 @@ export interface Theme {
 }
 
 const themesFile = new URL("../data/themes.json", import.meta.url);
-export const themes: Record<string, Theme> = await Bun.file(themesFile).json();
+export const themes: Record<string, Theme> = await readJson(themesFile);
 export const themeNames: string[] = Object.keys(themes).sort();
 
 export const DEFAULT_THEME = "serika_dark";
