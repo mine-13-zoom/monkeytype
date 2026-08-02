@@ -1,7 +1,7 @@
 {
   "name": "monkeytype",
-  "version": "0.1.0",
-  "description": "A monkeytype clone for the terminal",
+  "version": "0.1.1",
+  "description": "Terminal typing test — run with: npx monkeytype",
   "type": "module",
   "bin": {
     "monkeytype": "dist/index.js"
@@ -10,10 +10,23 @@
     "dist",
     "data"
   ],
+  "homepage": "https://github.com/mine-13-zoom/monkeytype#readme",
+  "bugs": {
+    "url": "https://github.com/mine-13-zoom/monkeytype/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mine-13-zoom/monkeytype.git"
   },
+  "keywords": [
+    "monkeytype",
+    "typing",
+    "typing-test",
+    "cli",
+    "terminal",
+    "tui",
+    "wpm"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -22,6 +35,7 @@
   },
   "scripts": {
     "build": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --banner:js='#!/usr/bin/env node' --packages=external",
+    "test": "node dist/index.js --help && node dist/index.js --list-themes",
     "prepublishOnly": "npm run build",
     "start": "node dist/index.js",
     "dev": "node --watch dist/index.js",

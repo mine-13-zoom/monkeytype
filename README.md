@@ -1,10 +1,16 @@
 # monkeytype
 
+```sh
+npx monkeytype
+```
+
 > **Disclaimer:** This is an unofficial, community-made terminal typing test inspired by [Monkeytype](https://monkeytype.com). It is not affiliated with, endorsed by, or maintained by the Monkeytype team. "Monkeytype" is a trademark of its respective owners. Themes, languages, quotes, and test logic are ported from the open-source [monkeytypegame/monkeytype](https://github.com/monkeytypegame/monkeytype) project for compatibility.
 
 A Monkeytype-style typing test for the terminal. Truecolor themes, raw ANSI, Node 18+.
 
-## Install
+> **Note:** The npm sidebar always shows `npm i monkeytype`. That only installs the package — use **`npx monkeytype`** (above) to run it.
+
+## Install & run
 
 ```sh
 npx monkeytype
@@ -12,13 +18,7 @@ npx monkeytype
 bunx monkeytype
 ```
 
-Requires [Node.js](https://nodejs.org/) 18 or newer.
-
-## Run
-
-```sh
-monkeytype
-```
+Requires [Node.js](https://nodejs.org/) 18 or newer. After a global install (`npm i -g monkeytype`), run `monkeytype` directly.
 
 ### CLI flags
 
